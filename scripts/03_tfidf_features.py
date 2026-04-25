@@ -4,13 +4,10 @@ from pyspark.ml.feature import Tokenizer, StopWordsRemover, HashingTF, IDF
 
 spark = SparkSession.builder \
     .appName("Jigsaw TF-IDF Feature Extraction") \
-    .master("local[*]") \
-    .config("spark.driver.bindAddress", "127.0.0.1") \
-    .config("spark.driver.host", "127.0.0.1") \
     .getOrCreate()
 
 df = spark.read.csv(
-    "data/train.csv",
+    "hdfs:///user/aj4955_nyu_edu/hatespeech/data/train.csv",
     header=True,
     inferSchema=True,
     multiLine=True,

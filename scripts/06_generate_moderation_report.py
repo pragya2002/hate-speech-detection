@@ -3,13 +3,10 @@ from pyspark.sql.functions import col, rand, sum as spark_sum, count, avg
 
 spark = SparkSession.builder \
     .appName("Generate Moderation Report") \
-    .master("local[*]") \
-    .config("spark.driver.bindAddress", "127.0.0.1") \
-    .config("spark.driver.host", "127.0.0.1") \
     .getOrCreate()
 
 df = spark.read.csv(
-    "data/train.csv",
+    "hdfs:///user/aj4955_nyu_edu/hatespeech/data/train.csv",
     header=True,
     inferSchema=True,
     multiLine=True,
@@ -63,15 +60,15 @@ flagged_comments = df.filter(
     "identity_hate"
 )
 
-summary.coalesce(1).write.mode("overwrite").option("header", True).csv("output/moderation_summary")
-flagged_users.coalesce(1).write.mode("overwrite").option("header", True).csv("output/flagged_users")
-flagged_comments.coalesce(1).write.mode("overwrite").option("header", True).csv("output/flagged_comments")
+summary.coalesce(1).write.mode("overwrite").option("header", True).csv("hdfs:///user/aj4955_nyu_edu/hatespeech/outputs/moderation_summary")
+flagged_users.coalesce(1).write.mode("overwrite").option("header", True).csv("hdfs:///user/aj4955_nyu_edu/hatespeech/outputs/flagged_users")
+flagged_comments.coalesce(1).write.mode("overwrite").option("header", True).csv("hdfs:///user/aj4955_nyu_edu/hatespeech/outputs/flagged_comments")
 
 print("Moderation report generated successfully.")
 print("Files saved in:")
-print("output/moderation_summary")
-print("output/flagged_users")
-print("output/flagged_comments")
+print("hdfs:///user/aj4955_nyu_edu/hatespeech/outputs/moderation_summary")
+print("hdfs:///user/aj4955_nyu_edu/hatespeech/outputs/flagged_users")
+print("hdfs:///user/aj4955_nyu_edu/hatespeech/outputs/flagged_comments")
 
 print("Overall dataset summary:")
 summary.show(truncate=False)
