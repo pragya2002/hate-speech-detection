@@ -1,0 +1,19 @@
+# Data files
+*.csv
+*.zip
+*.parquet
+
+# Spark logs
+logs/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env

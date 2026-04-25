@@ -1,0 +1,23 @@
+{
+  "model_type": "LogisticRegression",
+  "features": "TF-IDF (HashingTF + IDF)",
+  "num_features": 10000,
+  "min_doc_freq": 5,
+  "reg_param": 0.01,
+  "elastic_net_param": 0.5,
+  "max_iter": 20,
+  "class_weighting": "9.43x for toxic class",
+  "training_samples": 159571,
+  "training_time_sec": 60.66,
+  "cv_test_auc_roc": 0.8724,
+  "cv_test_auc_pr": 0.478,
+  "cv_test_recall": 0.8657,
+  "cv_test_precision": 0.2344,
+  "cv_test_f1": 0.3689,
+  "selected_over": [
+    "LR baseline (AUC 0.87, recall 0.52)",
+    "GBT (AUC 0.84, recall 0.37)",
+    "LR weighted untuned (AUC 0.84, recall 0.69)"
+  ],
+  "selection_rationale": "Highest recall (0.87) minimizes missed toxic comments. Best AUC-ROC (0.8724) among class-weighted models. Low false negatives (402) critical for moderation use case."
+}
