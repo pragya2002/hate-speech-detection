@@ -1,0 +1,18 @@
+# Data files
+data/
+*.csv
+*.zip
+
+# Spark / logs
+*.log
+spark-warehouse/
+
+# Python
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# VS Code
+.vscode/
