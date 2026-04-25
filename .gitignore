@@ -2,10 +2,12 @@
 *.csv
 *.zip
 *.parquet
+data/
 
-# Spark logs
+# Spark
 logs/
 *.log
+spark-warehouse/
 
 # Python cache
 __pycache__/
@@ -17,3 +19,12 @@ __pycache__/
 
 # Environment
 .env
+
+# Mac
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Output
+output/
