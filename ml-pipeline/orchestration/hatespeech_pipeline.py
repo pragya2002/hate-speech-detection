@@ -1,8 +1,7 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 # ── Default args ──────────────────────────────────────────────────────────────
 default_args = {
@@ -24,7 +23,7 @@ spark-submit \
     {script}
 """
 
-SCRIPTS_BASE = "/home/aj4955_nyu_edu/hatespeech_data"
+SCRIPTS_BASE = "/home/aj4955_nyu_edu/hatespeech-bigdata"
 
 # ── DAG definition ────────────────────────────────────────────────────────────
 with DAG(
@@ -37,20 +36,20 @@ with DAG(
     tags=["bigdata", "nlp", "hate-speech"],
 ) as dag:
 
-    # ── Task 1: Ingest data from HDFS ─────────────────────────────────────────
+    # ── Task 1: Ingest and partition data on HDFS ─────────────────────────────
     ingest = BashOperator(
         task_id="ingest_data",
         bash_command=SPARK_SUBMIT.format(
-            script=f"{SCRIPTS_BASE}/ingest.py"
+            script=f"{SCRIPTS_BASE}/ml-pipeline/ingestion/ingest.py"
         ),
         execution_timeout=timedelta(minutes=15),
     )
 
-    # ── Task 2: Run TF-IDF + prediction using saved final model ───────────────
+    # ── Task 2: Apply NLP preprocessing + run predictions ────────────────────
     predict = BashOperator(
         task_id="run_predictions",
         bash_command=SPARK_SUBMIT.format(
-            script=f"{SCRIPTS_BASE}/predict.py"
+            script=f"{SCRIPTS_BASE}/scripts/07_predict.py"
         ),
         execution_timeout=timedelta(minutes=15),
     )
@@ -59,7 +58,7 @@ with DAG(
     aggregate = BashOperator(
         task_id="aggregate_user_behavior",
         bash_command=SPARK_SUBMIT.format(
-            script=f"{SCRIPTS_BASE}/aggregate.py"
+            script=f"{SCRIPTS_BASE}/scripts/05_user_aggregation.py"
         ),
         execution_timeout=timedelta(minutes=15),
     )
@@ -68,12 +67,12 @@ with DAG(
     report = BashOperator(
         task_id="generate_report",
         bash_command=SPARK_SUBMIT.format(
-            script=f"{SCRIPTS_BASE}/report.py"
+            script=f"{SCRIPTS_BASE}/scripts/06_generate_moderation_report.py"
         ),
         execution_timeout=timedelta(minutes=15),
     )
 
-    # ── Task 5: Notify pipeline completion ────────────────────────────────────
+    # ── Task 5: Log pipeline completion ───────────────────────────────────────
     notify = BashOperator(
         task_id="notify_completion",
         bash_command="""
