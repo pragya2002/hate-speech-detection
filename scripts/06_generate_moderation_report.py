@@ -9,47 +9,80 @@ spark.sparkContext.setLogLevel("WARN")
 
 HDFS_BASE = "hdfs:///user/aj4955_nyu_edu/hatespeech"
 
-# ── Load predictions and user stats from HDFS ─────────────────────────────────
-print("\n=== Loading predictions and user stats ===")
-predictions = spark.read.parquet(f"{HDFS_BASE}/outputs/predictions")
-user_stats  = spark.read.parquet(f"{HDFS_BASE}/outputs/user_stats")
-flagged_users = spark.read.parquet(f"{HDFS_BASE}/outputs/flagged_users_parquet")
-
-# ── Overall summary ───────────────────────────────────────────────────────────
-print("\n=== Overall dataset summary ===")
-summary = predictions.agg(
-    count("*").alias("total_comments"),
-    spark_sum("predicted_toxic").alias("predicted_toxic"),
-    spark_sum("toxic").alias("actual_toxic"),
-    spark_sum("severe_toxic").alias("severe_toxic"),
-    spark_sum("obscene").alias("obscene"),
-    spark_sum("threat").alias("threat"),
-    spark_sum("insult").alias("insult"),
-    spark_sum("identity_hate").alias("identity_hate")
-)
-summary.show(truncate=False)
-
-# ── Flagged comments ──────────────────────────────────────────────────────────
-print("\n=== Flagged comments (predicted toxic) ===")
-flagged_comments = predictions.filter(
-    col("predicted_toxic") == 1.0
-).select(
-    "id",
-    "comment_text",
-    "predicted_toxic",
+LABELS = [
     "toxic",
     "severe_toxic",
     "obscene",
     "threat",
     "insult",
     "identity_hate"
-)
-print(f"  Total flagged comments: {flagged_comments.count()}")
-flagged_comments.show(5, truncate=80)
+]
 
-# ── Top flagged users ─────────────────────────────────────────────────────────
+# ── Load predictions ──────────────────────────────────────────────────────────
+print("\n=== Loading multi-label predictions ===")
+predictions = spark.read.parquet(f"{HDFS_BASE}/outputs/predictions")
+total = predictions.count()
+print(f"  Total rows: {total}")
+
+# ── Overall summary ───────────────────────────────────────────────────────────
+print("\n=== Overall summary ===")
+summary_exprs = [count("*").alias("total_comments")] + [
+    spark_sum(col(f"pred_{label}")).alias(f"predicted_{label}")
+    for label in LABELS
+] + [
+    spark_sum(col(label)).alias(f"actual_{label}")
+    for label in LABELS
+]
+summary = predictions.agg(*summary_exprs)
+summary.show(truncate=False)
+
+# ── Per-label flagged comment counts ─────────────────────────────────────────
+print("\n=== Flagged comment counts per label ===")
+print(f"  {'Label':<20} {'Predicted':>10} {'Actual':>10} {'Difference':>12}")
+print(f"  {'-'*55}")
+summary_row = summary.collect()[0]
+for label in LABELS:
+    predicted = int(summary_row[f"predicted_{label}"])
+    actual    = int(summary_row[f"actual_{label}"])
+    diff      = predicted - actual
+    print(f"  {label:<20} {predicted:>10} {actual:>10} {diff:>+12}")
+
+# ── Flagged comments (any label predicted toxic) ──────────────────────────────
+print("\n=== Flagged comments (any category) ===")
+any_toxic_filter = col("pred_toxic") == 1.0
+for label in LABELS[1:]:
+    any_toxic_filter = any_toxic_filter | (col(f"pred_{label}") == 1.0)
+
+flagged_comments = predictions.filter(any_toxic_filter).select(
+    "id",
+    "comment_text",
+    *[col(f"pred_{label}").alias(label) for label in LABELS]
+)
+print(f"  Total flagged: {flagged_comments.count()}")
+flagged_comments.show(5, truncate=60)
+
+# ── User aggregation ──────────────────────────────────────────────────────────
+print("\n=== User behavior aggregation ===")
+from pyspark.sql.functions import rand
+predictions_with_user = predictions.withColumn(
+    "user_id", (rand(seed=42) * 1000).cast("int")
+)
+
+user_stats = predictions_with_user.groupBy("user_id").agg(
+    count("*").alias("total_comments"),
+    *[spark_sum(col(f"pred_{label}")).alias(f"{label}_count") for label in LABELS],
+    avg(col("pred_toxic")).alias("toxicity_ratio")
+)
+
+flagged_users = user_stats.filter(
+    (col("toxicity_ratio") > 0.15) &
+    (col("total_comments") >= 50)
+).orderBy(col("toxicity_ratio").desc())
+
+print(f"  Total users    : {user_stats.count()}")
+print(f"  Flagged users  : {flagged_users.count()}")
 print("\n=== Top 10 high-risk users ===")
-flagged_users.orderBy(col("toxicity_ratio").desc()).show(10)
+flagged_users.show(10, truncate=False)
 
 # ── Write reports to HDFS ─────────────────────────────────────────────────────
 print("\n=== Writing reports to HDFS ===")
@@ -68,10 +101,6 @@ flagged_comments.coalesce(1).write \
     .option("header", True) \
     .csv(f"{HDFS_BASE}/outputs/flagged_comments")
 
-print("  Reports saved:")
-print(f"  {HDFS_BASE}/outputs/moderation_summary")
-print(f"  {HDFS_BASE}/outputs/flagged_users")
-print(f"  {HDFS_BASE}/outputs/flagged_comments")
-
+print(f"  Reports saved to {HDFS_BASE}/outputs/")
 print("\n=== Moderation report complete ===")
 spark.stop()
