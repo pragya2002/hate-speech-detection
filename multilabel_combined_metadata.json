@@ -1,0 +1,56 @@
+{
+  "toxic": {
+    "auc_roc": 0.9189,
+    "auc_pr": 0.8033,
+    "recall": 0.8794,
+    "precision": 0.5679,
+    "f1": 0.6902,
+    "n_positive": 47909,
+    "training_data": "jigsaw+hatexplain+twitter"
+  },
+  "severe_toxic": {
+    "auc_roc": 0.8852,
+    "auc_pr": 0.1353,
+    "recall": 0.8472,
+    "precision": 0.0261,
+    "f1": 0.0506,
+    "n_positive": 1595,
+    "training_data": "jigsaw+hatexplain+twitter"
+  },
+  "obscene": {
+    "auc_roc": 0.9329,
+    "auc_pr": 0.7551,
+    "recall": 0.8045,
+    "precision": 0.6275,
+    "f1": 0.705,
+    "n_positive": 27639,
+    "training_data": "jigsaw+hatexplain+twitter"
+  },
+  "threat": {
+    "auc_roc": 0.9435,
+    "auc_pr": 0.0644,
+    "recall": 0.6875,
+    "precision": 0.0324,
+    "f1": 0.0619,
+    "n_positive": 478,
+    "training_data": "jigsaw+hatexplain+twitter"
+  },
+  "insult": {
+    "auc_roc": 0.9244,
+    "auc_pr": 0.7494,
+    "recall": 0.8641,
+    "precision": 0.4883,
+    "f1": 0.624,
+    "n_positive": 32828,
+    "training_data": "jigsaw+hatexplain+twitter"
+  },
+  "identity_hate": {
+    "auc_roc": 0.9062,
+    "auc_pr": 0.3726,
+    "recall": 0.8667,
+    "precision": 0.1444,
+    "f1": 0.2475,
+    "n_positive": 9069,
+    "training_data": "jigsaw+hatexplain+twitter"
+  }
+}
