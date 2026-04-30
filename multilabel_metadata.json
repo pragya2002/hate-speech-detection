@@ -1,0 +1,62 @@
+{
+  "toxic": {
+    "auc_roc": 0.8722,
+    "auc_pr": 0.4767,
+    "recall": 0.8657,
+    "precision": 0.2338,
+    "f1": 0.3682,
+    "n_positive": 15294,
+    "class_weight": 9.43,
+    "train_time_s": 51.68
+  },
+  "severe_toxic": {
+    "auc_roc": 0.9035,
+    "auc_pr": 0.1721,
+    "recall": 0.8722,
+    "precision": 0.0373,
+    "f1": 0.0715,
+    "n_positive": 1595,
+    "class_weight": 99.04,
+    "train_time_s": 43.36
+  },
+  "obscene": {
+    "auc_roc": 0.8806,
+    "auc_pr": 0.3922,
+    "recall": 0.8577,
+    "precision": 0.1505,
+    "f1": 0.2561,
+    "n_positive": 8449,
+    "class_weight": 17.89,
+    "train_time_s": 39.67
+  },
+  "threat": {
+    "auc_roc": 0.9247,
+    "auc_pr": 0.0626,
+    "recall": 0.61,
+    "precision": 0.0371,
+    "f1": 0.07,
+    "n_positive": 478,
+    "class_weight": 332.83,
+    "train_time_s": 39.56
+  },
+  "insult": {
+    "auc_roc": 0.8897,
+    "auc_pr": 0.3649,
+    "recall": 0.8789,
+    "precision": 0.1362,
+    "f1": 0.2359,
+    "n_positive": 7877,
+    "class_weight": 19.26,
+    "train_time_s": 93.63
+  },
+  "identity_hate": {
+    "auc_roc": 0.8736,
+    "auc_pr": 0.1086,
+    "recall": 0.7958,
+    "precision": 0.0362,
+    "f1": 0.0693,
+    "n_positive": 1405,
+    "class_weight": 112.57,
+    "train_time_s": 70.53
+  }
+}
