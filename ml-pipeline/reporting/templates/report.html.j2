@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Moderation Report &mdash; {{ summary.run_date }}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           max-width: 1100px; margin: 2em auto; padding: 0 1em; color: #222; }
+    h1, h2 { border-bottom: 1px solid #ddd; padding-bottom: 0.3em; margin-top: 1.6em; }
+    table { border-collapse: collapse; width: 100%; margin: 0.6em 0 1.4em;
+            font-size: 0.92em; }
+    th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid #eee;
+             vertical-align: top; }
+    th { background: #f5f5f5; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 3px;
+             background: #fee; color: #900; font-size: 0.8em; margin-right: 4px; }
+    .meta { color: #666; font-size: 0.9em; }
+    .truncate { max-width: 480px; overflow: hidden; text-overflow: ellipsis;
+                white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+<h1>Moderation Report</h1>
+<p class="meta">
+  Run date: <strong>{{ summary.run_date }}</strong>
+  &middot; <code>user_id</code> values are simulated (random 0&ndash;999) until
+  real user attribution is wired into ingestion.
+</p>
+
+<h2>Summary</h2>
+<table>
+  <tr><th>Total scanned</th><td class="num">{{ "{:,}".format(summary.total_scanned) }}</td></tr>
+  <tr><th>Total flagged</th><td class="num">{{ "{:,}".format(summary.total_flagged) }}</td></tr>
+  <tr><th>Flagged %</th><td class="num">{{ summary.flagged_pct }}%</td></tr>
+</table>
+
+<h2>Category breakdown</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Label</th>
+      <th class="num">Count</th>
+      <th class="num">% of total</th>
+      <th class="num">% of flagged</th>
+      <th class="num">Avg probability</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in categories %}
+    <tr>
+      <td>{{ c.label }}</td>
+      <td class="num">{{ "{:,}".format(c.count) }}</td>
+      <td class="num">{{ c.pct_of_total }}%</td>
+      <td class="num">{{ c.pct_of_flagged }}%</td>
+      <td class="num">{{ c.avg_probability }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2>High-risk users (top {{ high_risk|length }})</h2>
+{% if high_risk %}
+<table>
+  <thead>
+    <tr>
+      <th>User ID</th>
+      <th class="num">Total</th>
+      <th class="num">Flagged</th>
+      <th class="num">Ratio</th>
+      <th>Top label</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for u in high_risk %}
+    <tr>
+      <td>{{ u.user_id }}</td>
+      <td class="num">{{ u.total_comments }}</td>
+      <td class="num">{{ u.flagged_count }}</td>
+      <td class="num">{{ "%.4f"|format(u.toxicity_ratio) }}</td>
+      <td>{{ u.top_label }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p class="meta">No users crossed the high-risk thresholds.</p>
+{% endif %}
+
+<h2>Flagged comments (first {{ flagged|length }})</h2>
+{% if flagged %}
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>User</th>
+      <th>Comment</th>
+      <th>Max label</th>
+      <th class="num">Max prob</th>
+      <th>All flags</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for f in flagged %}
+    <tr>
+      <td>{{ f.id }}</td>
+      <td>{{ f.user_id }}</td>
+      <td class="truncate" title="{{ f.comment_text }}">{{ f.comment_text }}</td>
+      <td>{{ f.max_label }}</td>
+      <td class="num">{{ "%.4f"|format(f.max_probability) }}</td>
+      <td>
+        {% for label in f.flagged_labels.split(',') if label %}
+          <span class="badge">{{ label }}</span>
+        {% endfor %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p class="meta">No comments flagged in this run.</p>
+{% endif %}
+
+</body>
+</html>

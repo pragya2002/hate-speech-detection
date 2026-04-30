@@ -1,34 +1,17 @@
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
 from pyspark.sql.functions import col, lower, regexp_replace, trim
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config import HDFS_BASE, LABELS, THRESHOLDS
 
 spark = SparkSession.builder \
     .appName("HateSpeech-MultiLabel-Predict") \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("WARN")
-
-HDFS_BASE = "hdfs:///user/aj4955_nyu_edu/hatespeech"
-
-LABELS = [
-    "toxic",
-    "severe_toxic",
-    "obscene",
-    "threat",
-    "insult",
-    "identity_hate"
-]
-
-# Custom thresholds per label based on class rarity and model behavior
-THRESHOLDS = {
-    "toxic":         0.50,
-    "severe_toxic":  0.80,  # rare class — model outputs near-constant ~55%, raise bar
-    "obscene":       0.50,
-    "threat":        0.70,  # rare class — reduce false positives
-    "insult":        0.50,
-    "identity_hate": 0.65,  # reduce bias against identity mentions
-}
 
 comment = " ".join(sys.argv[1:])
 print(f"\n=== Input Comment ===")

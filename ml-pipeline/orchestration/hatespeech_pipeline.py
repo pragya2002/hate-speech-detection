@@ -64,10 +64,14 @@ with DAG(
     )
 
     # ── Task 4: Generate moderation report ────────────────────────────────────
+    # Reads HDFS prediction outputs, applies per-label thresholds, writes
+    # summary / category_breakdown / flagged_comments / high_risk_users
+    # under outputs/reports/<run_date>/. Replaces the old local-mode
+    # scripts/06_generate_moderation_report.py (kept in repo for reference).
     report = BashOperator(
         task_id="generate_report",
         bash_command=SPARK_SUBMIT.format(
-            script=f"{SCRIPTS_BASE}/scripts/06_generate_moderation_report.py"
+            script=f"{SCRIPTS_BASE}/ml-pipeline/reporting/generate_report.py"
         ),
         execution_timeout=timedelta(minutes=15),
     )
