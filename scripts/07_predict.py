@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
-from pyspark.sql.functions import col, lower, regexp_replace, trim
+from pyspark.sql.functions import col, lower, regexp_replace, trim, monotonically_increasing_id
 import time
 
 spark = SparkSession.builder \
@@ -22,7 +22,7 @@ LABELS = [
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 print("\n=== Loading data ===")
-df = spark.read.parquet(f"{HDFS_BASE}/data/train_partitioned")
+df = spark.read.parquet(f"{HDFS_BASE}/data/combined_train")
 df = df.filter(col("comment_text").isNotNull())
 print(f"  Rows loaded: {df.count()}")
 
@@ -37,6 +37,9 @@ cleaned = df \
 
 # ── Run all 6 models ──────────────────────────────────────────────────────────
 print("\n=== Running multi-label predictions ===")
+
+cleaned = cleaned.withColumn("id", monotonically_increasing_id().cast("string"))
+
 output = cleaned.select(
     "id",
     "comment_text",
