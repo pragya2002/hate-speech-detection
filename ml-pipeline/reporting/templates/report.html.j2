@@ -18,6 +18,11 @@
     .meta { color: #666; font-size: 0.9em; }
     .truncate { max-width: 480px; overflow: hidden; text-overflow: ellipsis;
                 white-space: nowrap; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1em;
+              margin: 0.6em 0 1.4em; }
+    .charts img { width: 100%; height: auto; border: 1px solid #eee;
+                  border-radius: 4px; background: #fafafa; }
+    .chart-wide { grid-column: span 2; }
   </style>
 </head>
 <body>
@@ -35,6 +40,24 @@
   <tr><th>Total flagged</th><td class="num">{{ "{:,}".format(summary.total_flagged) }}</td></tr>
   <tr><th>Flagged %</th><td class="num">{{ summary.flagged_pct }}%</td></tr>
 </table>
+
+{% if charts %}
+<h2>Charts</h2>
+<div class="charts">
+  {% if charts.category_bar %}
+    <div><img src="charts/category_bar.png" alt="Flagged comments by category"></div>
+  {% endif %}
+  {% if charts.distribution %}
+    <div><img src="charts/distribution.png" alt="Toxic vs clean distribution"></div>
+  {% endif %}
+  {% if charts.user_heatmap %}
+    <div class="chart-wide"><img src="charts/user_heatmap.png" alt="High-risk users heatmap"></div>
+  {% endif %}
+  {% if charts.volume_trend %}
+    <div class="chart-wide"><img src="charts/volume_trend.png" alt="Volume trend"></div>
+  {% endif %}
+</div>
+{% endif %}
 
 <h2>Category breakdown</h2>
 <table>

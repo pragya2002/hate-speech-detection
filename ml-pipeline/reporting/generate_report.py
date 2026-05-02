@@ -156,11 +156,13 @@ def build_high_risk_users(df, run_date,
     for l in LABELS[1:]:
         top_label_expr = top_label_expr.when(col(f"{l}_count") == max_count, lit(l))
 
+    select_cols = ["user_id", "total_comments", "flagged_count",
+                   "toxicity_ratio", "top_label"]
+    select_cols += [f"{l}_count" for l in LABELS]
     user_stats = (
         user_stats
           .withColumn("top_label", top_label_expr)
-          .select("user_id", "total_comments", "flagged_count",
-                  "toxicity_ratio", "top_label")
+          .select(*select_cols)
     )
 
     return (
@@ -172,11 +174,26 @@ def build_high_risk_users(df, run_date,
     )
 
 
+def build_volume_buckets(df, n_buckets=20):
+    from pyspark.sql.window import Window
+    from pyspark.sql.functions import ntile, monotonically_increasing_id
+    df_indexed = df.withColumn("__row", monotonically_increasing_id())
+    window = Window.orderBy("__row")
+    bucketed = df_indexed.withColumn("bucket_index", ntile(n_buckets).over(window) - 1)
+    return (
+        bucketed.groupBy("bucket_index")
+                .agg(count("*").alias("comment_count"),
+                     spark_sum(col("any_flagged").cast("int")).alias("flagged_count"))
+                .orderBy("bucket_index")
+    )
+
+
 def write_csv(spark_df, path):
     spark_df.coalesce(1).write.mode("overwrite").option("header", True).csv(path)
 
 
-def render_html(summary, categories, flagged_pdf, high_risk_pdf, html_path):
+def render_html(summary, categories, flagged_pdf, high_risk_pdf, html_path,
+                charts=None):
     try:
         from jinja2 import Template
     except ImportError:
@@ -189,11 +206,24 @@ def render_html(summary, categories, flagged_pdf, high_risk_pdf, html_path):
         categories=categories,
         flagged=flagged_pdf.head(100).to_dict(orient="records") if flagged_pdf is not None else [],
         high_risk=high_risk_pdf.head(100).to_dict(orient="records") if high_risk_pdf is not None else [],
+        charts=charts or {},
     )
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
     with open(html_path, "w") as f:
         f.write(rendered)
     return True
+
+
+def render_charts(summary, categories, high_risk_pdf, buckets_pdf, charts_dir):
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import visualize
+    except ImportError as e:
+        print(f"  Charts: skipped ({e})")
+        return {}
+    high_risk_rows = high_risk_pdf.to_dict(orient="records") if high_risk_pdf is not None else []
+    buckets_rows = buckets_pdf.to_dict(orient="records") if buckets_pdf is not None else []
+    return visualize.render_all(summary, categories, high_risk_rows, buckets_rows, charts_dir)
 
 
 def main():
@@ -221,6 +251,7 @@ def main():
     categories = build_category_breakdown(df, total, flagged_total)
     flagged_df = build_flagged_comments(df, run_date)
     high_risk_df = build_high_risk_users(df, run_date)
+    buckets_df = build_volume_buckets(df)
 
     summary_df = spark.createDataFrame([Row(**summary)])
     category_df = spark.createDataFrame([Row(**r) for r in categories])
@@ -229,6 +260,7 @@ def main():
     write_csv(category_df, f"{reports_base}/category_breakdown")
     write_csv(flagged_df, f"{reports_base}/flagged_comments")
     write_csv(high_risk_df, f"{reports_base}/high_risk_users")
+    write_csv(buckets_df, f"{reports_base}/volume_buckets")
 
     print("\n=== Summary ===")
     summary_df.show(truncate=False)
@@ -240,15 +272,25 @@ def main():
     try:
         flagged_pdf = flagged_df.limit(100).toPandas()
         high_risk_pdf = high_risk_df.limit(100).toPandas()
-        local_html = os.path.join(
-            os.path.expanduser(LOCAL_BASE), "reports", run_date, "report.html"
+        buckets_pdf = buckets_df.toPandas()
+
+        local_run_dir = os.path.join(
+            os.path.expanduser(LOCAL_BASE), "reports", run_date
         )
-        if render_html(summary, categories, flagged_pdf, high_risk_pdf, local_html):
-            print(f"\n  HTML : {local_html}")
+        charts_dir = os.path.join(local_run_dir, "charts")
+        charts = render_charts(summary, categories, high_risk_pdf, buckets_pdf, charts_dir)
+        if charts:
+            print(f"\n  Charts: {len(charts)} PNGs in {charts_dir}")
         else:
-            print("\n  HTML : skipped (jinja2 not installed)")
+            print("\n  Charts: skipped (matplotlib not installed)")
+
+        local_html = os.path.join(local_run_dir, "report.html")
+        if render_html(summary, categories, flagged_pdf, high_risk_pdf, local_html, charts):
+            print(f"  HTML  : {local_html}")
+        else:
+            print("  HTML  : skipped (jinja2 not installed)")
     except Exception as e:
-        print(f"\n  HTML : skipped ({e})")
+        print(f"\n  Charts/HTML skipped: {e}")
 
     df.unpersist()
     spark.stop()

@@ -132,6 +132,23 @@ def test_high_risk_users_threshold(spark):
     assert set(pdf["user_id"].tolist()) == {0, 5}
     assert (pdf["toxicity_ratio"] == 1.0).all()
     assert (pdf["top_label"] == "toxic").all()
+    # Per-label count columns are kept on the output (heatmap source).
+    for label in LABELS:
+        assert f"{label}_count" in pdf.columns
+    assert (pdf["toxic_count"] == 10).all()
+    assert (pdf["threat_count"] == 0).all()
+
+
+def test_build_volume_buckets(spark):
+    df = _make_predictions(spark, 100)
+    out = gr.apply_thresholds(df).cache()
+    buckets = gr.build_volume_buckets(out, n_buckets=10).toPandas()
+    assert len(buckets) == 10
+    assert buckets["comment_count"].sum() == 100
+    # 20 toxic in 100 -> 20 flagged across all buckets
+    assert buckets["flagged_count"].sum() == 20
+    # bucket_index is 0..9
+    assert set(buckets["bucket_index"].tolist()) == set(range(10))
 
 
 def test_high_risk_users_default_min_excludes_small_users(spark):
