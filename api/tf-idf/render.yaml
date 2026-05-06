@@ -1,0 +1,23 @@
+services:
+  # Flask API service
+  - type: web
+    name: hate-speech-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 5000
+    healthCheckPath: /
+    autoDeploy: true
+
+  # Telegram bot service (background worker)
+  - type: worker
+    name: hate-speech-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false  # Set manually in Render dashboard
+      - key: HATE_SPEECH_API_URL
+        sync: false  # Set to the Flask API URL after first deploy
